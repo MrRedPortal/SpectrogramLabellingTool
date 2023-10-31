@@ -14,10 +14,8 @@ from matplotlib.widgets import RectangleSelector
 data = {'Time Start': [], 'Time End': [], 'Frequency Start': [], 'Frequency End': [], 'Label': []}
 df = pd.DataFrame(data)
 
-# Load your audio file and create the spectrogram
-audio_file = "16.wav"
-y, sr = librosa.load(audio_file)
-spectrogram = librosa.feature.melspectrogram(y=y, sr=sr)
+# Initialize Spectrogram
+spectrogram = None
 
 # Create a Tkinter window
 root = tk.Tk()
@@ -27,17 +25,47 @@ root.title("Spectrogram Labeling Tool")
 fig = plt.figure(figsize=(10, 4))
 canvas = FigureCanvasTkAgg(fig, master=root)
 canvas_widget = canvas.get_tk_widget()
-canvas_widget.pack()
+canvas_widget.grid(row=0, column=0, columnspan=6)
 
 # Create a subplot for the spectrogram
 ax_spectrogram = fig.add_subplot(111)
 
 # Create a label to display the mouse coordinates
 coord_label = tk.Label(root, text="")
-coord_label.pack()
+coord_label.grid(row=1, column=0, columnspan=6)
 
-# Display the spectrogram on the subplot
-librosa.display.specshow(librosa.power_to_db(spectrogram, ref=np.max), y_axis='mel', x_axis='time', ax=ax_spectrogram)
+# Create input fields for time start and stop
+time_start_label = tk.Label(root, text="Time Start:")
+time_start_label.grid(row=2, column=0)
+time_start_entry = tk.Entry(root)
+time_start_entry.grid(row=2, column=1)
+
+time_end_label = tk.Label(root, text="Time End:")
+time_end_label.grid(row=2, column=2)
+time_end_entry = tk.Entry(root)
+time_end_entry.grid(row=2, column=3)
+
+# Create input fields for frequency start and stop
+freq_start_label = tk.Label(root, text="Frequency Start:")
+freq_start_label.grid(row=3, column=0)
+freq_start_entry = tk.Entry(root)
+freq_start_entry.grid(row=3, column=1)
+
+freq_end_label = tk.Label(root, text="Frequency End:")
+freq_end_label.grid(row=3, column=2)
+freq_end_entry = tk.Entry(root)
+freq_end_entry.grid(row=3, column=3)
+
+# Create an input field for square label
+label_label = tk.Label(root, text="Label:")
+label_label.grid(row=4, column=0)
+label_entry = tk.Entry(root)
+label_entry.grid(row=4, column=1)
+
+
+# Function to add a rectangle to the listbox
+def add_rectangle_to_listbox(label):
+    saved_rectangles_listbox.insert(tk.END, f"Label: {label}")
 
 
 # Function to update the rectangle coordinates and label data
@@ -53,7 +81,7 @@ def on_select(eclick, erelease):
     time_start_entry.insert(0, f"{x_start:.3f}")
     time_end_entry.delete(0, 'end')
     time_end_entry.insert(0, f"{x_end:.3f}")
-    freq_start_entry.delete('end')
+    freq_start_entry.delete(0, 'end')
     freq_start_entry.insert(0, f"{y_start:.3f}")
     freq_end_entry.delete(0, 'end')
     freq_end_entry.insert(0, f"{y_end:.3f}")
@@ -72,6 +100,9 @@ def on_select(eclick, erelease):
     # Clear the input fields
     label_entry.delete(0, 'end')
 
+    # Add the label to the listbox
+    add_rectangle_to_listbox(label)
+
 
 # Bind the on_select function to the RectangleSelector
 RS = RectangleSelector(ax=ax_spectrogram, onselect=on_select, useblit=True, button=[1], spancoords='data')
@@ -80,17 +111,23 @@ RS = RectangleSelector(ax=ax_spectrogram, onselect=on_select, useblit=True, butt
 # Function to display the spectrogram and previously drawn rectangles
 def display_spectrogram():
     plt.clf()
-    librosa.display.specshow(librosa.power_to_db(spectrogram, ref=np.max), y_axis='mel', x_axis='time')
-    plt.colorbar(format='%+2.0f dB')
+    if spectrogram is not None:
+        librosa.display.specshow(librosa.power_to_db(spectrogram, ref=np.max), y_axis='mel', x_axis='time')
+        plt.colorbar(format='%+2.0f dB')
 
-    for index, row in df.iterrows():
-        x_start, x_end, y_start, y_end, label = row
-        rect = Rectangle((x_start, y_start), x_end - x_start, y_end - y_start, fill=False, edgecolor='red', linewidth=2,
-                         label=label)
-        ax_spectrogram.add_patch(rect)
+        for index, row in df.iterrows():
+            x_start, x_end, y_start, y_end, label = row
+            rect = Rectangle((x_start, y_start), x_end - x_start, y_end - y_start, fill=False, edgecolor='red',
+                             linewidth=2,
+                             label=label)
+            ax_spectrogram.add_patch(rect)
 
-    ax_spectrogram.legend()
-    canvas.draw()
+        ax_spectrogram.legend()
+        canvas.draw()
+    else:
+        plt.text(0.5, 0.5, 'No spectrogram available', horizontalalignment='center', verticalalignment='center',
+                 transform=ax_spectrogram.transAxes)
+        canvas.draw()
 
 
 # Function to update the coordinate label
@@ -125,7 +162,7 @@ def edit_rectangle():
         time_start_entry.insert(0, f"{x_start:.3f}")
         time_end_entry.delete(0, 'end')
         time_end_entry.insert(0, f"{x_end:.3f}")
-        freq_start_entry.delete('end')
+        freq_start_entry.delete(0, 'end')
         freq_start_entry.insert(0, f"{y_start:.3f}")
         freq_end_entry.delete(0, 'end')
         freq_end_entry.insert(0, f"{y_end:.3f}")
@@ -150,60 +187,6 @@ def edit_rectangle():
         pass
 
 
-# Create a listbox to show saved rectangles
-saved_rectangles_listbox = tk.Listbox(root)
-saved_rectangles_listbox.pack()
-
-# Button to edit a saved rectangle
-edit_button = tk.Button(root, text="Edit Selected", command=edit_rectangle)
-edit_button.pack()
-
-# Create input fields for time start and stop
-time_start_label = tk.Label(root, text="Time Start:")
-time_start_label.pack()
-time_start_entry = tk.Entry(root)
-time_start_entry.pack()
-
-time_end_label = tk.Label(root, text="Time End:")
-time_end_label.pack()
-time_end_entry = tk.Entry(root)
-time_end_entry.pack()
-
-# Create input fields for frequency start and stop
-freq_start_label = tk.Label(root, text="Frequency Start:")
-freq_start_label.pack()
-freq_start_entry = tk.Entry(root)
-freq_start_entry.pack()
-
-freq_end_label = tk.Label(root, text="Frequency End:")
-freq_end_label.pack()
-freq_end_entry = tk.Entry(root)
-freq_end_entry.pack()
-
-# Create an input field for square label
-label_label = tk.Label(root, text="Label:")
-label_label.pack()
-label_entry = tk.Entry(root)
-label_entry.pack()
-
-# Button to add labels
-add_button = tk.Button(root, text="Add Coords", command=RS.set_active(True))
-add_button.pack()
-
-# Button to save the labeled data to a CSV file
-save_button = tk.Button(root, text="Save to CSV", command=save_to_csv)
-save_button.pack()
-
-
-# Function to save data to a CSV file when the window is closed
-def on_closing():
-    save_to_csv()
-    root.destroy()
-
-
-root.protocol("WM_DELETE_WINDOW", on_closing)
-
-
 # Function to clear the input fields
 def clear_input_fields():
     time_start_entry.delete(0, 'end')
@@ -216,6 +199,36 @@ def clear_input_fields():
 # Bind the update_coords function to the mouse motion event on the Figure
 fig.canvas.mpl_connect('motion_notify_event', update_coords)
 
-display_spectrogram()
 
+# Load your audio file and create the spectrogram
+def load_audio_file():
+    global spectrogram
+    audio_path = filedialog.askopenfilename(filetypes=[("Audio Files", "*.wav")])
+    if audio_path:
+        y, sr = librosa.load(audio_path)
+        spectrogram = librosa.feature.melspectrogram(y=y, sr=sr)
+        display_spectrogram()
+
+
+# Button to add labels
+add_button = tk.Button(root, text="Add Coords", command=lambda: RS.set_active(True))
+add_button.grid(row=4, column=4, columnspan=2)
+
+# Create a listbox to show saved rectangles
+saved_rectangles_listbox = tk.Listbox(root)
+saved_rectangles_listbox.grid(row=5, column=0, columnspan=6)
+
+# Button to edit a saved rectangle
+edit_button = tk.Button(root, text="Edit Selected", command=edit_rectangle)
+edit_button.grid(row=6, column=0, columnspan=6)
+
+# Button to save the labeled data to a CSV file
+save_button = tk.Button(root, text="Save to CSV", command=save_to_csv)
+save_button.grid(row=7, column=0, columnspan=6)
+
+# Button to load an audio file
+load_button = tk.Button(root, text="Load Audio File", command=load_audio_file)
+load_button.grid(row=8, column=0, columnspan=6)
+
+display_spectrogram()
 root.mainloop()
