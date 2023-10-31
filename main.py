@@ -78,13 +78,13 @@ def on_select(eclick, erelease):
 
     # Update the input fields
     time_start_entry.delete(0, 'end')
-    time_start_entry.insert(0, f"{x_start:.3f}")
+    time_start_entry.insert(0, f"{y_start:.3f}")
     time_end_entry.delete(0, 'end')
-    time_end_entry.insert(0, f"{x_end:.3f}")
+    time_end_entry.insert(0, f"{y_end:.3f}")
     freq_start_entry.delete(0, 'end')
-    freq_start_entry.insert(0, f"{y_start:.3f}")
+    freq_start_entry.insert(0, f"{x_start:.3f}")
     freq_end_entry.delete(0, 'end')
-    freq_end_entry.insert(0, f"{y_end:.3f}")
+    freq_end_entry.insert(0, f"{x_end:.3f}")
 
     # Get the name for the square
     label = label_entry.get()
@@ -112,7 +112,7 @@ RS = RectangleSelector(ax=ax_spectrogram, onselect=on_select, useblit=True, butt
 def display_spectrogram():
     plt.clf()
     if spectrogram is not None:
-        librosa.display.specshow(librosa.power_to_db(spectrogram, ref=np.max), y_axis='mel', x_axis='time')
+        librosa.display.specshow(librosa.power_to_db(spectrogram, ref=np.max), y_axis='time', x_axis='mel')
         plt.colorbar(format='%+2.0f dB')
 
         for index, row in df.iterrows():
@@ -134,7 +134,7 @@ def display_spectrogram():
 def update_coords(event):
     x, y = event.xdata, event.ydata
     if x is not None and y is not None:
-        coord_label.config(text=f"Time: {x:.2f}, Hz: {y:.2f}")
+        coord_label.config(text=f"Time: {y:.2f}, Hz: {x:.2f}")
     else:
         coord_label.config(text="")
 
@@ -159,13 +159,13 @@ def edit_rectangle():
 
         # Update the input fields
         time_start_entry.delete(0, 'end')
-        time_start_entry.insert(0, f"{x_start:.3f}")
+        time_start_entry.insert(0, f"{y_start:.3f}")
         time_end_entry.delete(0, 'end')
-        time_end_entry.insert(0, f"{x_end:.3f}")
+        time_end_entry.insert(0, f"{y_end:.3f}")
         freq_start_entry.delete(0, 'end')
-        freq_start_entry.insert(0, f"{y_start:.3f}")
+        freq_start_entry.insert(0, f"{x_start:.3f}")
         freq_end_entry.delete(0, 'end')
-        freq_end_entry.insert(0, f"{y_end:.3f}")
+        freq_end_entry.insert(0, f"{x_end:.3f}")
         label_entry.delete(0, 'end')
         label_entry.insert(0, label)
 
